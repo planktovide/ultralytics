@@ -30,6 +30,7 @@ from ultralytics.nn.modules import (
     Bottleneck,
     BottleneckCSP,
     C2f,
+    C2fx,
     C2fAttn,
     C2fCIB,
     C2fPSA,
@@ -1380,6 +1381,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C1,
             C2,
             C2f,
+            C2fx, #add C2fx
             C3k2,
             RepNCSPELAN4,
             ELAN1,
@@ -1406,6 +1408,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C1,
             C2,
             C2f,
+            C2fx, #add C2fx
             C3k2,
             C2fAttn,
             C3,
