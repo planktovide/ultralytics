@@ -19,6 +19,7 @@ __all__ = (
     "ChannelAttention",
     "SpatialAttention",
     "CBAM",
+    "FastKANAttention2D",
     "Concat",
     "RepConv",
     "Index",
@@ -648,6 +649,60 @@ class CBAM(nn.Module):
             (torch.Tensor): Attended output tensor.
         """
         return self.spatial_attention(self.channel_attention(x))
+    
+
+class FastKANAttention2D(nn.Module):
+    """
+    FastKAN-based spatial attention module.
+    Combines global average pooling with lightweight basis functions (RBF, Fourier, Polynomial).
+    """
+
+    def __init__(self, channels, num_grids=8):
+        super().__init__()
+        self.channels = channels
+        self.num_grids = num_grids
+
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+
+        # Basis functions
+        self.basis_rbf = nn.Sequential(
+            nn.Linear(channels, num_grids),
+            nn.GELU()
+        )
+
+        self.basis_fourier = nn.Sequential(
+            nn.Linear(channels, num_grids),
+            nn.SiLU()
+        )
+
+        self.basis_poly = nn.Sequential(
+            nn.Linear(channels, num_grids),
+            nn.ReLU()
+        )
+
+        # Attention fusion
+        self.attn_fuse = nn.Sequential(
+            nn.Linear(num_grids * 3, channels),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        b, c, h, w = x.size()
+
+        # Global average pooling
+        pooled = self.avg_pool(x).view(b, c)  # [B, C]
+
+        # Apply three types of basis functions
+        rbf_out = self.basis_rbf(pooled)
+        fourier_out = self.basis_fourier(pooled)
+        poly_out = self.basis_poly(pooled)
+
+        # Concatenate and generate attention
+        fused = torch.cat([rbf_out, fourier_out, poly_out], dim=1)
+        attn = self.attn_fuse(fused).view(b, c, 1, 1)
+
+        # Apply attention
+        return x * attn
 
 
 class Concat(nn.Module):
