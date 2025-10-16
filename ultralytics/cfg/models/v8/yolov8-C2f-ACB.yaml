@@ -1,0 +1,57 @@
+# Ultralytics YOLOv8m custom model with Asymmetric Convolution Block (ACB)
+# Model ini dirancang untuk skala YOLOv8m dengan modifikasi C2f_ACB
+
+# Parameters
+nc: 20 # <-- PENTING: Ganti dengan jumlah kelas Anda (20 untuk plankton)
+scales: # model compound scaling constants
+  # [depth, width, max_channels]
+  m: [0.67, 0.75, 768] # Skala YOLOv8m
+
+# YOLOv8m Backbone (Direvisi dengan ACB)
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, Conv, [64, 3, 2]]      # 0-P1/2
+  - [-1, 1, Conv, [128, 3, 2]]     # 1-P2/4
+  
+  # Layer #2: Menggunakan blok C2f_ACB kustom Anda
+  - [-1, 2, C2f_ACB, [128, True]]  # 2
+  
+  - [-1, 1, Conv, [256, 3, 2]]     # 3-P3/8
+  
+  # Layer #4: Menggunakan C2f standar
+  - [-1, 4, C2f, [256, True]]      # 4
+  
+  - [-1, 1, Conv, [512, 3, 2]]     # 5-P4/16
+  
+  # Layer #6
+  - [-1, 4, C2f, [512, True]]      # 6
+  
+  - [-1, 1, Conv, [768, 3, 2]]     # 7-P5/32
+  
+  # Layer #8
+  - [-1, 2, C2f, [768, True]]      # 8
+  
+  - [-1, 1, SPPF, [768, 5]]        # 9
+
+# YOLOv8 Head (PANet Structure)
+head:
+  # Upsampling path
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 6], 1, Concat, [1]]      # 11: cat backbone P4 (dari layer #6)
+  - [-1, 2, C2f, [512, True]]      # 12
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 4], 1, Concat, [1]]      # 14: cat backbone P3 (dari layer #4)
+  - [-1, 2, C2f, [256, True]]      # 15 (P3/8-small head output)
+
+  # Downsampling path
+  - [-1, 1, Conv, [256, 3, 2]]
+  - [[-1, 12], 1, Concat, [1]]     # 17: cat head P4 (dari layer #12)
+  - [-1, 2, C2f, [512, True]]      # 18 (P4/16-medium head output)
+
+  - [-1, 1, Conv, [512, 3, 2]]
+  - [[-1, 9], 1, Concat, [1]]      # 20: cat head P5 (dari layer #9)
+  - [-1, 2, C2f, [768, True]]      # 21 (P5/32-large head output)
+
+  # Detection head
+  - [[15, 18, 21], 1, Detect, [nc]] # Detect(P3, P4, P5)
