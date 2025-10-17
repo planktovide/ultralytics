@@ -22,7 +22,7 @@ __all__ = (
     "FastKANAttention2D",
     "Concat",
     "RepConv",
-    "Index"
+    "Index",
     "AsymmetricConvBlock",
 )
 
@@ -766,69 +766,4 @@ class Index(nn.Module):
             (torch.Tensor): Selected tensor.
         """
         return x[self.index]
-    
 
-
-# AsymmetricConvBlock (ACB)
-class AsymmetricConvBlock(nn.Module):
-    """
-    Asymmetric Convolution Block (ACB) with 3x3, 1x3, and 3x1 parallel convolutions.
-    This block enhances feature extraction during training and can be fused into a single
-    3x3 convolution for efficient inference.
-    """
-    def __init__(self, c1, c2, k=3, s=1, p=None, g=1, d=1, act=True):
-        super().__init__()
-        self.c1 = c1
-        self.c2 = c2
-        self.s = s
-        self.g = g
-        
-        # Standard 3x3 convolution branch
-        self.conv_3x3 = Conv(c1, c2, k, s, p, g, d, act=False) # act is handled after summation
-        
-        # Asymmetric 1x3 convolution branch
-        self.conv_1x3 = Conv(c1, c2, (1, k), s, (autopad(k, p, d)[1], autopad(k, p, d)[0]), g, d, act=False)
-        
-        # Asymmetric 3x1 convolution branch
-        self.conv_3x1 = Conv(c1, c2, (k, 1), s, (autopad(k, p, d)[0], autopad(k, p, d)[1]), g, d, act=False)
-        
-        # A single Batch Normalization layer after summing the branches
-        self.bn = nn.BatchNorm2d(c2)
-        
-        # Activation function
-        self.act = Conv.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
-        
-    def forward(self, x):
-        """Forward pass sums the outputs of the three parallel branches."""
-        # During training, we compute all three branches and sum them up
-        if self.training:
-            y1 = self.conv_3x3(x)
-            y2 = self.conv_1x3(x)
-            y3 = self.conv_3x1(x)
-            return self.act(self.bn(y1 + y2 + y3))
-        else:
-            # During inference, we assume the convs have been fused.
-            # The AsymmetricConvBlock is now just a standard Conv layer.
-            return self.act(self.bn(self.conv_3x3(x)))
-
-    def fuse_convs(self):
-        """
-        Fuses the 1x3 and 3x1 kernels into the 3x3 kernel for efficient inference.
-        This method should be called after training and before deployment.
-        """
-        # Fuse 1x3 into 3x3
-        kernel_1x3 = self.conv_1x3.conv.weight
-        padded_1x3 = nn.functional.pad(kernel_1x3, [0, 0, 1, 1]) # Pad top and bottom
-        self.conv_3x3.conv.weight.data += padded_1x3
-        
-        # Fuse 3x1 into 3x3
-        kernel_3x1 = self.conv_3x1.conv.weight
-        padded_3x1 = nn.functional.pad(kernel_3x1, [1, 1, 0, 0]) # Pad left and right
-        self.conv_3x3.conv.weight.data += padded_3x1
-        
-        # Fuse batch normalization layers
-        # This is a more complex step involving fusing BN stats into conv weights and biases.
-        # For simplicity in this example, we assume the framework handles BN fusion.
-        # After fusion, we can remove the asymmetric branches.
-        self.__delattr__('conv_1x3')
-        self.__delattr__('conv_3x1')

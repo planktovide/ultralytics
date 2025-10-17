@@ -1919,7 +1919,7 @@ class SwiGLUFFN(nn.Module):
         x1, x2 = x12.chunk(2, dim=-1)
         hidden = F.silu(x1) * x2
         return self.w3(hidden)
-
+    
 
 class Residual(nn.Module):
     """Residual connection wrapper for neural network modules."""

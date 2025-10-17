@@ -29,9 +29,6 @@ from ultralytics.nn.modules import (
     ADown,
     Bottleneck,
     BottleneckCSP,
-    Bottleneck_ACB,
-    AsymmetricConvBlock,
-    C2f_ACB,
     C2f,
     C2fx,
     C2fAttn,
@@ -1383,9 +1380,6 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             BottleneckCSP,
             C1,
             C2,
-            Bottleneck_ACB,
-            AsymmetricConvBlock,
-            C2f_ACB,
             C2f,
             C2fx, #add C2fx
             C3k2,
@@ -1415,7 +1409,6 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C2,
             C2f,
             C2fx, #add C2fx
-            C2f_ACB,
             C3k2,
             C2fAttn,
             C3,

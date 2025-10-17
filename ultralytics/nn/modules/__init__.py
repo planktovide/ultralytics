@@ -36,11 +36,9 @@ from .block import (
     Attention,
     BNContrastiveHead,
     Bottleneck,
-    Bottleneck_ACB,
     BottleneckCSP,
     C2f,
     C2fx,
-    C2f_ACB,
     C2fAttn,
     C2fCIB,
     C2fPSA,
@@ -77,7 +75,6 @@ from .conv import (
     Index,
     LightConv,
     RepConv,
-    AsymmetricConvBlock,
     SpatialAttention,
 )
 from .head import (
@@ -109,7 +106,6 @@ from .transformer import (
 __all__ = (
     "Conv",
     "Conv2",
-    "AsymmetricConvBlock",
     "LightConv",
     "RepConv",
     "DWConv",
@@ -135,7 +131,6 @@ __all__ = (
     "C3",
     "C2f",
     "C2fx",
-    "C2f_ACB",
     "C3k2",
     "SCDown",
     "C2fPSA",
@@ -146,7 +141,6 @@ __all__ = (
     "C3Ghost",
     "GhostBottleneck",
     "Bottleneck",
-    "Bottleneck_ACB",
     "BottleneckCSP",
     "Proto",
     "Detect",
